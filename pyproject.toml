@@ -1,19 +1,19 @@
 [tool.poetry]
-name = "dj-dyanamic-templates"
-version = "0.1.0"
+name = "dj_dynamic_templates"
+version = "0.1.3"
 description = ""
 authors = ["sudheerkumar <v.sudheerkumar91@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+django = "5.0.1"
 
 
 [tool.poetry.group.dev]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-django = "5.0.1"
 psycopg2 = "^2.9.9"
 
 

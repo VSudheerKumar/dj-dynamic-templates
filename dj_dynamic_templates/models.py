@@ -121,13 +121,6 @@ class DjDynamicTemplateCategory(models.Model):
 
 class DjDynamicTemplate(BaseModel):
 
-    help_texts = {
-        'created_at': _("The date and time when this template was created. "
-                        "This field is automatically set to the current date and time when the record is first created."),
-        'created_by': _("The user who created this template. "
-                        "This field is automatically populated with the user who initially created the record.")
-    }
-
     category = models.ForeignKey(
         DjDynamicTemplateCategory, on_delete=models.CASCADE, verbose_name=_('Category'),
         help_text=_("Select the category where you want to save the template. "
@@ -160,15 +153,39 @@ class DjDynamicTemplate(BaseModel):
 
     created_at = models.DateTimeField(
         verbose_name=_('Created at'), db_default=Now(), editable=False,
-        help_text=_("The date and time when this template category was created. "
+        help_text=_("The date and time when this template was created. "
                     "This field is automatically set to the current date and time when the record is first created.")
     )
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, editable=False, verbose_name=_('Created by'),
-        help_text=_("The user who created this template category. "
+        help_text=_("The user who created this template. "
                     "This field is automatically populated with the user who initially created the record.")
     )
+
+    @cached_property
+    def file_path(self):
+        return self.category.directory_path + f'/{self.template_name}.html'
+
+    @cached_property
+    def is_file_exist(self):
+        return os.path.exists(self.file_path)
+
+    def create_file(self):
+        if self.category.is_directory_exists:
+            file = open(f'{self.file_path}', 'w')
+            file.write(self.content)
+            file.close()
+            return True
+        else:
+            return False
+
+    def delete_file(self):
+        if self.is_file_exist:
+            os.remove(self.file_path)
+            return True
+        else:
+            return False
 
     def __str__(self):
         return f'{self.category.app} - {self.category.name} - {self.template_name}'
@@ -187,6 +204,12 @@ class DjDynamicTemplate(BaseModel):
                                           'Please choose a different name or deactivate the existing template.')
             )
         ]
+        permissions = (
+            ('can_view_inactive_templates', 'Can view the Inactive Templates'),
+            ('can_create_file', 'Can Create File'),
+            ('can_delete_file', 'Can Delete File'),
+            ('can_view_file_status', 'Can View File Status')
+        )
         db_table = 'dj_dynamic_template'
         verbose_name = _(db_table.replace("_", " ").title())
         verbose_name_plural = verbose_name.replace("Template", "Templates")

@@ -142,14 +142,46 @@ class DjDynamicTemplateCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(DjDynamicTemplate)
 class DjDynamicTemplateAdmin(admin.ModelAdmin):
+    list_display = ['category', 'template_name', 'created_at', 'created_by']
+    list_select_related = True
+    list_display_links = ['category', 'template_name', 'id']
+    list_filter = ['category', 'created_by', 'created_at']
+    readonly_fields = ['created_at', 'created_by']
+    exclude = ['template_is_active']
+
+    def get_queryset(self, request):
+        queryset = super(DjDynamicTemplateAdmin, self).get_queryset(request)
+        if not request.user.has_perm('dj_dynamic_templates.can_view_inactive_templates'):
+            queryset = queryset.exclude(template_is_active=False)
+        return queryset
+
+    def get_list_filter(self, request):
+        list_filter = self.list_filter.copy()
+        if request.user.has_perm('dj_dynamic_templates.can_view_inactive_templates'):
+            list_filter += ['template_is_active']
+        return list_filter
+
+    def get_list_display(self, request):
+        list_display = self.list_display.copy()
+        if request.user.has_perm('dj_dynamic_templates.can_view_inactive_templates'):
+            list_display += ['template_is_active']
+            list_display.insert(0, 'id')
+        return list_display
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
-            return self.readonly_fields
+            return self.readonly_fields + ['revision_of']
         else:
             return []
 
     def save_model(self, request, obj, form, change):
         if not change:
             obj.created_by = request.user
+        elif obj.template_is_active:
+            old_obj = self.model.objects.get(pk=obj.pk)
+            old_obj.template_is_active = False
+            old_obj.save()
+            obj.created_by = request.user
+            obj.revision_of = old_obj
+            obj.pk = None
         obj.save()
