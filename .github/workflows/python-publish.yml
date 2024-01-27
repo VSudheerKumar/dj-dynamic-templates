@@ -41,3 +41,12 @@ jobs:
           
       - name: Install Dependencies
         run: poetry install
+
+      - name: Configure poetry
+        run: poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Build Package
+        run: poetry build
+
+      - name: Publish Package
+        run: poetry publish
