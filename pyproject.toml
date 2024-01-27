@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "dj_dynamic_templates"
+version = "0.1.4"
+description = ""
+authors = ["sudheerkumar <v.sudheerkumar91@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+django = "5.0.1"
+setuptools = "^69.0.3"
+
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+psycopg2 = "^2.9.9"
+django-markdownx = "^4.0.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

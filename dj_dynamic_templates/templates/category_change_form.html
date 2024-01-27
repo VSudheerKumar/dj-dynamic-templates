@@ -1,0 +1,44 @@
+{% extends 'admin/change_form.html' %}
+
+{% block after_related_objects %}
+{{ block.super }}
+<div style="display: flex;flex-direction: row;flex-wrap: wrap;justify-content: space-around;margin-bottom: 3%;">
+{% if change %}
+    {% if perms.dj_dynamic_templates.can_create_directory %}
+    <input type="submit" value="Sync Directory" name="_sync_dir" style="background-color: #36A9AE;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    padding: 10px 16px;
+    text-align: center;">
+    <input type="submit" value="Save & Rename Directory" name="_make_dir" style="background-color: #36A9AE;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    padding: 10px 16px;
+    text-align: center;">
+    {% endif %}
+    {% if perms.dj_dynamic_templates.can_delete_directory %}
+    <input type="submit" value="Remove Directory" name="_rmdir" style="background-color: #e62143;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    padding: 10px 16px;
+    text-align: center;">
+    {% endif %}
+{% else %}
+    {% if perms.dj_dynamic_templates.can_create_directory %}
+    <input type="submit" value="Save & Sync Directory" name="_make_dir" style="background-color: #EA4C89;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    padding: 10px 16px;
+    text-align: center;">
+    {% endif %}
+{% endif %}
+</div>
+{% endblock %}
