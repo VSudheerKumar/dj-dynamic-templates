@@ -1,0 +1,33 @@
+name: Check
+
+on:
+  pull_request:
+    types: [auto_merge_enabled]
+    branches: main
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Set up Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: false
+        installer-parallel: true
+        
+    - name: Install dependencies
+      run: poetry install --with dev
+        
+    - name: Analysing the code with pylint
+      run:  pylint dj_dynamic_templates
