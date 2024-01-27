@@ -18,18 +18,13 @@ permissions:
   contents: read
 
 jobs:
-  clone:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-  build:
-    runs-on: ubuntu-latest
-    needs: clone
-
-    steps:
+        
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -45,6 +40,4 @@ jobs:
           installer-parallel: true
           
       - name: Install Dependencies
-        run: |
-          ls
-          poetry install
+        run: poetry install
