@@ -2,7 +2,7 @@ name: Check
 
 on:
   pull_request:
-    types: [auto_merge_enabled]
+    types: [auto_merge_enabled, opened]
     branches: main
 
 jobs:
