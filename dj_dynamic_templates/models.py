@@ -7,27 +7,6 @@ import shutil
 from django.db import models
 from django.db.models.functions import Now
 
-# Create your models here.
-
-class BaseModel(models.Model):
-
-    help_texts = {
-        'created_at': _(''),
-        'created_by': _('')
-    }
-
-    created_at = models.DateTimeField(
-        verbose_name=_('Created at'), db_default=Now(), editable=False, help_text=help_texts['created_at']
-    )
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, editable=False,
-        verbose_name=_('Created by'), help_text=help_texts['created_by']
-    )
-
-
-    class Meta:
-        abstract = True
-
 
 class DjDynamicTemplateCategory(models.Model):
 
@@ -119,7 +98,7 @@ class DjDynamicTemplateCategory(models.Model):
         verbose_name_plural = verbose_name.replace("Category", "Categories")
 
 
-class DjDynamicTemplate(BaseModel):
+class DjDynamicTemplate(models.Model):
 
     category = models.ForeignKey(
         DjDynamicTemplateCategory, on_delete=models.CASCADE, verbose_name=_('Category'),
@@ -131,11 +110,19 @@ class DjDynamicTemplate(BaseModel):
         help_text=_("Enter a name for the template. This name will be treated as the template file name. "
                     "A template file(.html) with this name will be created.")
     )
-    content = models.TextField(
-        verbose_name=_('Content'), null=True, blank=True,
-        help_text=_("Insert the content of the template. "
-                    "This field allows you to define the content of your template, which can include HTML and inline CSS")
-    )
+    try:
+        from markdownx.models import MarkdownxField
+        content = MarkdownxField(
+            verbose_name=_('Content'), null=True, blank=True,
+            help_text=_("Insert the content of the template. "
+                        "This field allows you to define the content of your template, which can include HTML and inline CSS")
+        )
+    except ModuleNotFoundError:
+        content = models.TextField(
+            verbose_name=_('Content'), null=True, blank=True,
+            help_text=_("Insert the content of the template. "
+                        "This field allows you to define the content of your template, which can include HTML and inline CSS")
+        )
 
     template_is_active = models.BooleanField(
         verbose_name=_("Template is Active"), default=True,
@@ -208,7 +195,7 @@ class DjDynamicTemplate(BaseModel):
             ('can_view_inactive_templates', 'Can view the Inactive Templates'),
             ('can_create_file', 'Can Create File'),
             ('can_delete_file', 'Can Delete File'),
-            ('can_view_file_status', 'Can View File Status')
+            ('can_view_file_status', 'Can View File Status'),
         )
         db_table = 'dj_dynamic_template'
         verbose_name = _(db_table.replace("_", " ").title())

@@ -1,11 +1,18 @@
 import os
 from django.utils.html import format_html
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import reverse, path, include
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.contrib.auth.admin import UserAdmin
 from .forms import *
+from .views import template_view
+
+try:
+    from markdownx.admin import MarkdownxModelAdmin
+except ModuleNotFoundError:
+    class MarkdownxModelAdmin(admin.ModelAdmin):
+        pass
 
 
 @admin.register(DjDynamicTemplateCategory)
@@ -141,13 +148,33 @@ class DjDynamicTemplateCategoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(DjDynamicTemplate)
-class DjDynamicTemplateAdmin(admin.ModelAdmin):
+class DjDynamicTemplateAdmin(MarkdownxModelAdmin):
     list_display = ['category', 'template_name', 'created_at', 'created_by']
     list_select_related = True
     list_display_links = ['category', 'template_name', 'id']
     list_filter = ['category', 'created_by', 'created_at']
     readonly_fields = ['created_at', 'created_by']
     exclude = ['template_is_active']
+    actions = ['sync_templates', 'delete_templates']
+    change_form_template = 'template_change_form.html'
+
+    def get_actions(self, request):
+        actions = super(DjDynamicTemplateAdmin, self).get_actions(request)
+        if not request.user.has_perm('dj_dynamic_templates.can_create_file'):
+            del actions['sync_templates']
+        if not request.user.has_perm('dj_dynamic_templates.can_delete_file'):
+            del actions['delete_templates']
+        return actions
+
+    def get_exclude(self, request, obj=None):
+        if not request.user.has_perm('dj_dynamic_templates.can_view_inactive_templates'):
+            return self.exclude + ['revision_of']
+        return super().get_exclude(request, obj)
+
+    def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
+        if (change and obj) or add:
+            context['template_is_active'] = obj.template_is_active if not add else True
+        return super().render_change_form(request, context, add, change)
 
     def get_queryset(self, request):
         queryset = super(DjDynamicTemplateAdmin, self).get_queryset(request)
@@ -166,22 +193,97 @@ class DjDynamicTemplateAdmin(admin.ModelAdmin):
         if request.user.has_perm('dj_dynamic_templates.can_view_inactive_templates'):
             list_display += ['template_is_active']
             list_display.insert(0, 'id')
+        if request.user.has_perm('dj_dynamic_templates.can_view_file_status'):
+            list_display.append('template_status')
         return list_display
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
-            return self.readonly_fields + ['revision_of']
+            fields = self.readonly_fields + ['revision_of']
+            if obj.template_is_active:
+                if request.user.has_perm('dj_dynamic_templates.can_view_file_status'):
+                    fields.append('template_status')
+            return fields
         else:
             return []
 
     def save_model(self, request, obj, form, change):
+        old_obj = None
         if not change:
             obj.created_by = request.user
-        elif obj.template_is_active:
+            if '_make_template' in request.POST:
+                self.sync_templates(request, [obj])
+        elif '_make_template' in request.POST:
             old_obj = self.model.objects.get(pk=obj.pk)
             old_obj.template_is_active = False
             old_obj.save()
+            old_obj.delete_file()
             obj.created_by = request.user
             obj.revision_of = old_obj
             obj.pk = None
+            self.sync_templates(request, [obj])
         obj.save()
+
+    @admin.action(description='Sync Templates to File for selected records')
+    def sync_templates(self, request, queryset):
+        for obj in queryset:
+            if not obj.template_is_active:
+                self.message_user(request, f"'{obj.template_name}' Template is Inactive. So, Unable to sync")
+            elif obj.create_file():
+                self.message_user(request, f"Successfully synced template '{obj.template_name}' into '{obj.category.name} directory of App '{obj.category.app}' template's directory", messages.SUCCESS)
+            else:
+                if obj.category.make_directory():
+                    self.message_user(request, f"Directory does not exist so, '{obj.name}' directory has been created in the 'templates' directory of the '{obj.app}' app.", messages.WARNING)
+                    obj.create_file()
+                    self.message_user(request, f"Successfully synced template '{obj.template_name}' into '{obj.category.name} directory of App {obj.category.app}' template's directory", messages.SUCCESS)
+
+    @admin.action(description='Delete Template Files for selected records')
+    def delete_templates(self, request, queryset):
+        for obj in queryset:
+            if obj.delete_file():
+                self.message_user(request, f"Successfully deleted template '{obj.template_name}' in '{obj.category.name} directory of App {obj.category.app}' template's directory", messages.SUCCESS)
+            else:
+                self.message_user(request, f"Template File does not exist for template {obj.template_name} to delete it...!", messages.ERROR)
+
+    def has_change_permission(self, request, obj=None):
+        return super(DjDynamicTemplateAdmin, self).has_change_permission(request, obj) and (obj.template_is_active if obj else True)
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        obj = self.get_object(request, object_id)
+        if object_id:
+            extra_context = extra_context or {}
+            extra_context['show_save_and_continue'] = obj.template_is_active
+            extra_context['show_save'] = obj.template_is_active
+            extra_context['show_save_and_add_another'] = obj.template_is_active
+        if '_sync_template' in request.POST:
+            self.sync_templates(request, [obj])
+            return redirect('.')
+        elif '_remove_template' in request.POST:
+            self.delete_templates(request, [obj])
+            return redirect('.')
+        return super().changeform_view(request, object_id, form_url, extra_context)
+
+    def get_urls(self):
+        urls = super(DjDynamicTemplateAdmin, self).get_urls()
+        return [path('template-view/<int:template_id>/', template_view)] + urls
+
+    # @staticmethod
+    # def view_template(obj):
+    #     return format_html(f"<a href='/admin/dj_dynamic_templates/djdynamictemplate/template-view/{obj.id}/' data-popup='yes' class='related-widget-wrapper-link'>Click Here to View Template</a>")
+
+    @staticmethod
+    def template_status(obj):
+        if obj.template_is_active is False:
+            return "Inactive"
+        elif obj.category.is_directory_exists is False:
+            return "Directory Does Not Exists"
+        elif obj.is_file_exist is False:
+            return "File Does Not Exists"
+        else:
+            with open(obj.file_path, 'r') as file:
+                data = file.read().replace('\r', '')
+            content = obj.content.replace('\r', '')
+            if data == content:
+                return "Synced"
+            else:
+                return "Not Synced"

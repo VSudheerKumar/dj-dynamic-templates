@@ -1,0 +1,57 @@
+{% extends 'admin/change_form.html' %}
+
+{% block after_related_objects %}
+{{ block.super }}
+{% if template_is_active %}
+<div style="display: flex;flex-direction: row;flex-wrap: wrap;justify-content: space-around;margin-bottom: 3%;align-items: center">
+{% if change %}
+    <a href="{% url 'admin:dj_dynamic_templates_djdynamictemplate_changelist' %}template-view/{{ object_id }}" style="background-color: #36A9AE;
+    color: white;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    padding: 10px 16px;
+    text-decoration: none;
+    text-align: center;" target="_blank" rel="noopener noreferrer">
+        View Synced Template
+    </a>
+    {% if perms.dj_dynamic_templates.can_create_file %}
+    <input type="submit" value="Sync Template File" name="_sync_template" style="background-color: #36A9AE;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    padding: 10px 16px;
+    text-align: center;">
+    <input type="submit" value="Save & Sync Template File" name="_make_template" style="background-color: #36A9AE;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    padding: 10px 16px;
+    text-align: center;">
+    {% endif %}
+    {% if perms.dj_dynamic_templates.can_delete_file %}
+    <input type="submit" value="Remove Template File" name="_remove_template" style="background-color: #e62143;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    padding: 10px 16px;
+    text-align: center;">
+    {% endif %}
+{% else %}
+    {% if perms.dj_dynamic_templates.can_create_file %}
+    <input type="submit" value="Save & Sync Template" name="_make_template" style="background-color: #EA4C89;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    padding: 10px 16px;
+    text-align: center;">
+    {% endif %}
+{% endif %}
+</div>
+{% endif %}
+{% endblock %}
