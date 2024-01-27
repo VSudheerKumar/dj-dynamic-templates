@@ -11,8 +11,6 @@ name: Upload Python Package
 on:
   release:
     types: [published]
-  push:
-    branches: main
 
 permissions:
   contents: read
@@ -38,9 +36,6 @@ jobs:
           virtualenvs-in-project: false
           virtualenvs-path: '{cache-dir}/virtualenvs'
           installer-parallel: true
-          
-      - name: Install Dependencies
-        run: poetry install
 
       - name: Configure poetry
         run: poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
