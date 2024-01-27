@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dj_dynamic_templates"
-version = "0.1.6"
+version = "0.1.7"
 description = ""
 authors = ["sudheerkumar <v.sudheerkumar91@gmail.com>"]
 readme = "README.md"
