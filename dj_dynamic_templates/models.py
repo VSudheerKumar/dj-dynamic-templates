@@ -4,7 +4,8 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 import os
 import shutil
-from django.db import models
+from django.db import models, IntegrityError
+from django.core.exceptions import ValidationError
 from django.db.models.functions import Now
 
 
@@ -149,6 +150,10 @@ class DjDynamicTemplate(models.Model):
         help_text=_("The user who created this template. "
                     "This field is automatically populated with the user who initially created the record.")
     )
+
+    def clean(self):
+        if self.__class__.objects.filter(template_name=self.template_name, category=self.category, template_is_active=True).exclude(pk=self.pk).exists():
+            raise ValidationError({'template_name': f'The template with name "{self.template_name}" already exists in the Category {self.category.name} of App {self.category.app}'})
 
     @cached_property
     def file_path(self):
