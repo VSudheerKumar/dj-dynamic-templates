@@ -5,6 +5,7 @@ from django.urls import reverse, path, include
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.contrib.auth.admin import UserAdmin
+from django.db import IntegrityError, transaction
 from .forms import *
 from .views import template_view
 
@@ -127,9 +128,9 @@ class DjDynamicTemplateCategoryAdmin(admin.ModelAdmin):
             old_obj = self.model.objects.get(pk=obj.pk)
         else:
             obj.created_by = obj.last_updated_by = request.user
-            if '_make_dir' in request.POST:
-                self.create_directory(request, [obj])
         obj.save()
+        if '_make_dir' in request.POST:
+            self.create_directory(request, [obj])
         if change and old_obj.directory_path != obj.directory_path and '_make_dir' in request.POST:
             try:
                 os.rename(old_obj.directory_path, obj.directory_path)
@@ -207,12 +208,10 @@ class DjDynamicTemplateAdmin(MarkdownxModelAdmin):
         else:
             return []
 
+    @transaction.atomic()
     def save_model(self, request, obj, form, change):
-        old_obj = None
         if not change:
             obj.created_by = request.user
-            if '_make_template' in request.POST:
-                self.sync_templates(request, [obj])
         elif '_make_template' in request.POST:
             old_obj = self.model.objects.get(pk=obj.pk)
             old_obj.template_is_active = False
@@ -223,6 +222,8 @@ class DjDynamicTemplateAdmin(MarkdownxModelAdmin):
             obj.pk = None
             self.sync_templates(request, [obj])
         obj.save()
+        if '_make_template' in request.POST:
+            self.sync_templates(request, [obj])
 
     @admin.action(description='Sync Templates to File for selected records')
     def sync_templates(self, request, queryset):

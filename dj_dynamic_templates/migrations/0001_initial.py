@@ -9,7 +9,7 @@ try:
     from markdownx.models import MarkdownxField
     content_field = MarkdownxField
 except ModuleNotFoundError:
-    content_field = models.TextField()
+    content_field = models.TextField
 
 
 class Migration(migrations.Migration):
