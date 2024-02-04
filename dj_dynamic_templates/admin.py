@@ -234,7 +234,7 @@ class DjDynamicTemplateAdmin(MarkdownxModelAdmin):
                 self.message_user(request, f"Successfully synced template '{obj.template_name}' into '{obj.category.name}' directory of App '{obj.category.app}' template's directory", messages.SUCCESS)
             else:
                 if obj.category.make_directory():
-                    self.message_user(request, f"Directory does not exist so, '{obj.name}' directory has been created in the 'templates' directory of the '{obj.app}' app.", messages.WARNING)
+                    self.message_user(request, f"Directory does not exist so, '{obj.category.name}' directory has been created in the 'templates' directory of the '{obj.category.name}' app.", messages.WARNING)
                     obj.create_file()
                     self.message_user(request, f"Successfully synced template '{obj.template_name}' into '{obj.category.name}' directory of App {obj.category.app}' template's directory", messages.SUCCESS)
 
