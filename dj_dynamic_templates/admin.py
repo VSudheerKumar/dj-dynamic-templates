@@ -49,19 +49,19 @@ class DjDynamicTemplateCategoryAdmin(admin.ModelAdmin):
     ]
 
     @staticmethod
-    def is_directory_exists(obj):
+    def is_directory_exists(obj: DjDynamicTemplateCategory) -> bool:
         if obj.is_directory_exists:
             return format_html("""<img src="/static/admin/img/icon-yes.svg" alt="True">""")
         else:
             return format_html("""<img src="/static/admin/img/icon-no.svg" alt="True">""")
 
-    def get_list_display(self, request):
+    def get_list_display(self, request) -> list:
         fields = self.list_display.copy()
         if request.user.has_perm('dj_dynamic_templates.can_view_directory_status'):
             fields.append('is_directory_exists')
         return fields
 
-    def get_fieldsets(self, request, obj=None):
+    def get_fieldsets(self, request, obj=None) -> list:
         if obj is None:
             return [self.fieldsets[0]]
         fieldsets = self.fieldsets.copy()
@@ -74,7 +74,7 @@ class DjDynamicTemplateCategoryAdmin(admin.ModelAdmin):
                 fieldsets.append(('Directory Details', {'fields': ['files_in_directory'], 'classes': ['wide']}))
         return fieldsets
 
-    def get_actions(self, request):
+    def get_actions(self, request) -> dict:
         actions = super(DjDynamicTemplateCategoryAdmin, self).get_actions(request)
         if not request.user.has_perm('dj_dynamic_templates.can_create_directory'):
             del actions['create_directory']
@@ -82,7 +82,7 @@ class DjDynamicTemplateCategoryAdmin(admin.ModelAdmin):
             del actions['delete_directory']
         return actions
 
-    def get_readonly_fields(self, request, obj=None):
+    def get_readonly_fields(self, request, obj=None) -> list:
         fields = self.readonly_fields.copy()
         if obj:
             if request.user.has_perm('dj_dynamic_templates.can_view_directory_status'):
@@ -94,19 +94,19 @@ class DjDynamicTemplateCategoryAdmin(admin.ModelAdmin):
             return []
 
     @staticmethod
-    def files_in_directory(obj):
+    def files_in_directory(obj: DjDynamicTemplate):
         return format_html("<ol>" + "".join(['<li>{file_name}</li>'.format(file_name=file) for file in obj.files_in_dir]) + "</ol>")
 
-    @admin.action(description='Generate Category Folders for selected Records')
-    def create_directory(self, request, queryset):
+    @admin.action(description='Create Category Directory for selected Records')
+    def create_directory(self, request, queryset) -> None:
         for obj in queryset:
             if obj.make_directory():
                 self.message_user(request, f"Directory '{obj.name}' has been successfully created in the 'templates' directory of the '{obj.app}' app.", messages.SUCCESS)
             else:
                 self.message_user(request, f"Directory '{obj.name}' already exists in the 'templates' directory of the '{obj.app}' app.", messages.ERROR)
 
-    @admin.action(description='Delete Directory for selected Records')
-    def delete_directory(self, request, queryset):
+    @admin.action(description='Remove Category Directory for selected Records')
+    def delete_directory(self, request, queryset) -> None:
         for obj in queryset:
             if obj.remove_directory():
                 self.message_user(request, f"Directory '{obj.name}' has been successfully deleted in the 'templates' directory of the '{obj.app}' app.", messages.SUCCESS)
@@ -122,7 +122,7 @@ class DjDynamicTemplateCategoryAdmin(admin.ModelAdmin):
             return redirect('.')
         return super().changeform_view(request, object_id, form_url, extra_context)
 
-    def save_model(self, request, obj, form, change):
+    def save_model(self, request, obj, form, change) -> None:
         if change:
             obj.last_updated_by = request.user
             old_obj = self.model.objects.get(pk=obj.pk)
@@ -143,7 +143,7 @@ class DjDynamicTemplateCategoryAdmin(admin.ModelAdmin):
                 else:
                     self.message_user(request, f"Directory '{old_obj.name}' does not exist in the 'templates' directory of the '{old_obj.app}' app.", messages.ERROR)
 
-    def delete_model(self, request, obj):
+    def delete_model(self, request, obj) -> None:
         obj.remove_directory()
         obj.delete()
 
@@ -159,7 +159,7 @@ class DjDynamicTemplateAdmin(MarkdownxModelAdmin):
     actions = ['sync_templates', 'delete_templates']
     change_form_template = 'template_change_form.html'
 
-    def get_actions(self, request):
+    def get_actions(self, request) -> dict:
         actions = super(DjDynamicTemplateAdmin, self).get_actions(request)
         if not request.user.has_perm('dj_dynamic_templates.can_create_file'):
             del actions['sync_templates']
@@ -167,7 +167,7 @@ class DjDynamicTemplateAdmin(MarkdownxModelAdmin):
             del actions['delete_templates']
         return actions
 
-    def get_exclude(self, request, obj=None):
+    def get_exclude(self, request, obj=None) -> list:
         if not request.user.has_perm('dj_dynamic_templates.can_view_inactive_templates'):
             return self.exclude + ['revision_of']
         return super().get_exclude(request, obj)
@@ -183,13 +183,13 @@ class DjDynamicTemplateAdmin(MarkdownxModelAdmin):
             queryset = queryset.exclude(template_is_active=False)
         return queryset
 
-    def get_list_filter(self, request):
+    def get_list_filter(self, request) -> list:
         list_filter = self.list_filter.copy()
         if request.user.has_perm('dj_dynamic_templates.can_view_inactive_templates'):
             list_filter += ['template_is_active']
         return list_filter
 
-    def get_list_display(self, request):
+    def get_list_display(self, request) -> list:
         list_display = self.list_display.copy()
         if request.user.has_perm('dj_dynamic_templates.can_view_inactive_templates'):
             list_display += ['template_is_active']
@@ -198,7 +198,7 @@ class DjDynamicTemplateAdmin(MarkdownxModelAdmin):
             list_display.append('template_status')
         return list_display
 
-    def get_readonly_fields(self, request, obj=None):
+    def get_readonly_fields(self, request, obj=None) -> list:
         if obj:
             fields = self.readonly_fields + ['revision_of']
             if obj.template_is_active:
@@ -209,7 +209,7 @@ class DjDynamicTemplateAdmin(MarkdownxModelAdmin):
             return []
 
     @transaction.atomic()
-    def save_model(self, request, obj, form, change):
+    def save_model(self, request, obj, form, change) -> None:
         if not change:
             obj.created_by = request.user
         elif '_make_template' in request.POST:
@@ -226,20 +226,20 @@ class DjDynamicTemplateAdmin(MarkdownxModelAdmin):
             self.sync_templates(request, [obj])
 
     @admin.action(description='Sync Templates to File for selected records')
-    def sync_templates(self, request, queryset):
+    def sync_templates(self, request, queryset) -> None:
         for obj in queryset:
             if not obj.template_is_active:
                 self.message_user(request, f"'{obj.template_name}' Template is Inactive. So, Unable to sync")
             elif obj.create_file():
-                self.message_user(request, f"Successfully synced template '{obj.template_name}' into '{obj.category.name} directory of App '{obj.category.app}' template's directory", messages.SUCCESS)
+                self.message_user(request, f"Successfully synced template '{obj.template_name}' into '{obj.category.name}' directory of App '{obj.category.app}' template's directory", messages.SUCCESS)
             else:
                 if obj.category.make_directory():
                     self.message_user(request, f"Directory does not exist so, '{obj.name}' directory has been created in the 'templates' directory of the '{obj.app}' app.", messages.WARNING)
                     obj.create_file()
-                    self.message_user(request, f"Successfully synced template '{obj.template_name}' into '{obj.category.name} directory of App {obj.category.app}' template's directory", messages.SUCCESS)
+                    self.message_user(request, f"Successfully synced template '{obj.template_name}' into '{obj.category.name}' directory of App {obj.category.app}' template's directory", messages.SUCCESS)
 
     @admin.action(description='Delete Template Files for selected records')
-    def delete_templates(self, request, queryset):
+    def delete_templates(self, request, queryset) -> None:
         for obj in queryset:
             if obj.delete_file():
                 self.message_user(request, f"Successfully deleted template '{obj.template_name}' in '{obj.category.name} directory of App {obj.category.app}' template's directory", messages.SUCCESS)
@@ -264,7 +264,7 @@ class DjDynamicTemplateAdmin(MarkdownxModelAdmin):
             return redirect('.')
         return super().changeform_view(request, object_id, form_url, extra_context)
 
-    def get_urls(self):
+    def get_urls(self) -> list:
         urls = super(DjDynamicTemplateAdmin, self).get_urls()
         return [path('template-view/<int:template_id>/', template_view)] + urls
 
@@ -273,7 +273,7 @@ class DjDynamicTemplateAdmin(MarkdownxModelAdmin):
     #     return format_html(f"<a href='/admin/dj_dynamic_templates/djdynamictemplate/template-view/{obj.id}/' data-popup='yes' class='related-widget-wrapper-link'>Click Here to View Template</a>")
 
     @staticmethod
-    def template_status(obj):
+    def template_status(obj: DjDynamicTemplate) -> str:
         if obj.template_is_active is False:
             return "Inactive"
         elif obj.category.is_directory_exists is False:
