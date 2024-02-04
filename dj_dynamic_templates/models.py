@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.apps import apps
-from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 import os
 import shutil
@@ -55,28 +54,28 @@ class DjDynamicTemplateCategory(models.Model):
     def __str__(self):
         return f'{self.app} - {self.name}'
 
-    @cached_property
+    @property
     def directory_path(self):
         return os.path.join(settings.BASE_DIR, self.app, 'templates', self.name)
 
-    @cached_property
-    def is_directory_exists(self):
+    @property
+    def is_directory_exists(self) -> bool:
         return os.path.exists(self.directory_path)
 
-    @cached_property
-    def files_in_dir(self):
+    @property
+    def files_in_dir(self) -> list:
         if self.is_directory_exists:
             return os.listdir(self.directory_path)
         else:
             return list()
 
-    def make_directory(self):
+    def make_directory(self, exists_ok=False) -> bool:
         if not self.is_directory_exists:
-            os.makedirs(self.directory_path, exist_ok=False)
+            os.makedirs(self.directory_path, exist_ok=exists_ok)
             return True
         return False
 
-    def remove_directory(self):
+    def remove_directory(self) -> bool:
         if self.is_directory_exists:
             shutil.rmtree(self.directory_path, ignore_errors=True)
             return True
@@ -151,19 +150,19 @@ class DjDynamicTemplate(models.Model):
                     "This field is automatically populated with the user who initially created the record.")
     )
 
-    def clean(self):
+    def clean(self) -> None:
         if self.__class__.objects.filter(template_name=self.template_name, category=self.category, template_is_active=True).exclude(pk=self.pk).exists():
             raise ValidationError({'template_name': f'The template with name "{self.template_name}" already exists in the Category {self.category.name} of App {self.category.app}'})
 
-    @cached_property
-    def file_path(self):
+    @property
+    def file_path(self) -> str:
         return self.category.directory_path + f'/{self.template_name}.html'
 
-    @cached_property
-    def is_file_exist(self):
+    @property
+    def is_file_exist(self) -> bool:
         return os.path.exists(self.file_path)
 
-    def create_file(self):
+    def create_file(self) -> bool:
         if self.category.is_directory_exists:
             file = open(f'{self.file_path}', 'w')
             file.write(self.content)
@@ -172,7 +171,7 @@ class DjDynamicTemplate(models.Model):
         else:
             return False
 
-    def delete_file(self):
+    def delete_file(self) -> bool:
         if self.is_file_exist:
             os.remove(self.file_path)
             return True
