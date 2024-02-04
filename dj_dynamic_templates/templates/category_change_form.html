@@ -12,6 +12,7 @@
     line-height: 20px;
     padding: 10px 16px;
     text-align: center;">
+    {% if perms.dj_dynamic_templates.change_djdynamictemplatecategory %}
     <input type="submit" value="Save & Rename Directory" name="_make_dir" style="background-color: #36A9AE;
     border-radius: 8px;
     font-size: 14px;
@@ -19,6 +20,7 @@
     line-height: 20px;
     padding: 10px 16px;
     text-align: center;">
+    {% endif %}
     {% endif %}
     {% if perms.dj_dynamic_templates.can_delete_directory %}
     <input type="submit" value="Remove Directory" name="_rmdir" style="background-color: #e62143;
