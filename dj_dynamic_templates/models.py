@@ -151,6 +151,7 @@ class DjDynamicTemplate(models.Model):
     )
 
     def clean(self) -> None:
+        super().clean()
         if self.__class__.objects.filter(template_name=self.template_name, category=self.category, template_is_active=True).exclude(pk=self.pk).exists():
             raise ValidationError({'template_name': f'The template with name "{self.template_name}" already exists in the Category {self.category.name} of App {self.category.app}'})
 
